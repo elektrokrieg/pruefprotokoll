@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a3a5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Prüfprotokoll">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Prüfprotokoll – Elektro Krieg</title>
+<style>
+/* VOICE: sachlich, wie ein Formular vom Prüfer fuer Prüfer
+   IDEA: das Papier-Pruefprotokoll - jede Seite ist ein Blatt mit Kopf
+   PICTURE: das Blatt selbst, das man ausfuellt
+   COLOUR and TYPE: Navy #1a3a5c (Firmen-Apps), Gelb #f5b800 Akzent, Arial
+   LAYOUT: Kopfleiste, Kundendaten-Karte, dann Blaetter untereinander */
+:root{--navy:#1a3a5c;--navy2:#24507d;--yel:#f5b800;--red:#c0392b;--ok:#1e8449;--bg:#e9edf2;--paper:#fff;--ink:#1b1f24;--muted:#5d6b7a;--line:#c9d2dc;--soft:#f4f7fa}
+*{box-sizing:border-box;min-width:0}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 Arial,Helvetica,sans-serif;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink)}
+.top{position:sticky;top:0;z-index:50;background:var(--navy);color:#fff;padding:calc(8px + env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));display:flex;gap:8px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.top h1{font-size:17px;margin:0;flex:1 1 160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top h1 small{display:block;font-size:12px;font-weight:400;opacity:.8;overflow:hidden;text-overflow:ellipsis}
+.tb{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:9px 12px;min-height:42px;white-space:nowrap}
+.tb:active{background:rgba(255,255,255,.25)}
+.tb.pdf{background:var(--yel);color:#1b1f24;border-color:var(--yel);font-weight:700}
+.wrap{max-width:1180px;margin:0 auto;padding:14px max(10px,env(safe-area-inset-left))}
+.sheet{background:var(--paper);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.12),0 6px 18px rgba(26,58,92,.08);margin:0 0 18px;overflow:hidden}
+.sheet-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;background:var(--soft);border-bottom:1px solid var(--line)}
+.sheet-h h2{margin:0;font-size:16px;flex:1 1 auto}
+.blatt{font-size:12px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:20px;padding:3px 10px;white-space:nowrap}
+.kopf{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;padding:8px 14px;font-size:13px;border-bottom:1px dashed var(--line);color:var(--muted)}
+.kopf b{color:var(--ink)}
+.kopf img{height:30px;align-self:center}
+.sec{padding:10px 14px 12px;border-bottom:1px solid #eef1f4}
+.sec:last-child{border-bottom:0}
+.sec h3{margin:0 0 8px;font-size:13px;text-transform:none;color:var(--navy);letter-spacing:.2px}
+.grid{display:grid;gap:8px 12px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.grid.g3{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+label.f input,label.f textarea,label.f select{border:1px solid var(--line);border-radius:7px;padding:9px 10px;background:#fff;min-height:42px;width:100%}
+label.f input:focus,textarea:focus,.mt input:focus{outline:2px solid var(--navy2);outline-offset:0;border-color:var(--navy2)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 11px;min-height:42px;font-size:14px;user-select:none;-webkit-user-select:none}
+.chip .bx{width:20px;height:20px;border:2px solid #8695a5;border-radius:4px;display:grid;place-items:center;flex:none;background:#fff}
+.chip.on{border-color:var(--navy);background:#eaf1f8}
+.chip.on .bx{background:var(--navy);border-color:var(--navy)}
+.chip.on .bx::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.chip.nio.on{border-color:var(--red);background:#fbecea}
+.chip.nio.on .bx{background:var(--red);border-color:var(--red)}
+.chk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:center;padding:5px 0;border-bottom:1px solid #f0f2f5}
+.chk:last-child{border-bottom:0}
+.chk span{font-size:14px}
+.pair{display:flex;gap:5px}
+.pair .chip{padding:6px 9px;min-height:38px;font-size:13px}
+.cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 22px}
+@media(max-width:860px){.cols3{grid-template-columns:minmax(0,1fr)}}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:8px}
+table.mt{border-collapse:collapse;width:100%;min-width:1130px;font-size:13px}
+.mt th{background:var(--soft);color:var(--navy);font-size:11px;font-weight:700;padding:4px 3px;border:1px solid var(--line);line-height:1.15;text-align:center;vertical-align:bottom}
+.mt th.grp{font-size:11px;background:#e3eaf2}
+.mt td{border:1px solid #dfe5ec;padding:0}
+.mt input{border:0;width:100%;padding:8px 4px;min-height:38px;font-size:15px;text-align:center;background:transparent}
+.mt td.zb input{text-align:left}
+.mt tr:nth-child(even) td{background:#fafbfd}
+.mt td.act{width:34px;text-align:center;background:#fff!important}
+.mini{border:0;background:none;color:var(--muted);font-size:16px;width:34px;height:36px;border-radius:6px}
+.mini:active{background:#e8edf2}
+.row-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 13px;min-height:42px;color:var(--navy);font-weight:600}
+.btn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn.warn{color:var(--red)}
+.btn.big{padding:13px 18px;font-size:16px}
+.addbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:4px 0 22px}
+.sigs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media(max-width:700px){.sigs{grid-template-columns:minmax(0,1fr)}}
+.sigbox{border:1px dashed #9fb0c2;border-radius:8px;height:110px;display:grid;place-items:center;background:#fcfdfe;cursor:pointer;overflow:hidden}
+.sigbox img{max-width:100%;max-height:100%}
+.sigbox span{color:#9aa7b4;font-size:14px}
+.hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+.ac{position:relative}
+.ac-list{position:absolute;left:0;right:0;top:100%;z-index:30;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.15);max-height:260px;overflow:auto;display:none}
+.ac-list div{padding:10px 12px;border-bottom:1px solid #f0f2f5;font-size:14px;cursor:pointer}
+.ac-list div small{display:block;color:var(--muted)}
+.ac-list div:active,.ac-list div:hover{background:#eef3f8}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(15,25,40,.55);display:none;align-items:center;justify-content:center;padding:14px}
+.modal.open{display:flex}
+.mbox{background:#fff;border-radius:12px;width:min(640px,100%);max-height:88vh;overflow:auto;padding:16px}
+.mbox h3{margin:0 0 10px;color:var(--navy)}
+.plist div{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid #eef1f4}
+.plist div .t{flex:1}
+.plist small{display:block;color:var(--muted)}
+#sigModal .mbox{width:min(900px,100%)}
+#sigCanvas{width:100%;height:min(50vh,320px);border:1px solid var(--line);border-radius:8px;touch-action:none;background:#fff;display:block}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1b1f24;color:#fff;padding:10px 16px;border-radius:8px;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;font-size:14px}
+.toast.show{opacity:1}
+#upd{display:none;background:var(--yel);color:#1b1f24;text-align:center;padding:10px;font-weight:700;cursor:pointer}
+.ver{text-align:center;color:var(--muted);font-size:12px;margin:10px 0}
+@media(max-width:600px){.top h1{flex-basis:100%}.kopf{grid-template-columns:minmax(0,1fr)}.kopf img{display:none}}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div id="upd" onclick="clearCacheAndReload()">Neue Version verfügbar – hier tippen zum Aktualisieren</div>
+<header class="top">
+  <h1>Prüfprotokoll <small id="topSub">Elektrische Anlagen</small></h1>
+  <button class="tb" onclick="openList()">Protokolle</button>
+  <button class="tb" onclick="newProtocol()">Neu</button>
+  <button class="tb pdf" id="btnPdf" onclick="makePdf()">PDF erstellen</button>
+</header>
+<main class="wrap" id="app"></main>
+<div class="ver" onclick="clearCacheAndReload()">Version %%VERSION%% · Elektro Krieg Meiningen</div>
+
+<div class="modal" id="listModal"><div class="mbox">
+  <h3>Gespeicherte Protokolle</h3>
+  <div class="plist" id="plist"></div>
+  <div class="row-tools">
+    <button class="btn" onclick="exportJson()">Aktuelles als Datei sichern</button>
+    <label class="btn" style="display:inline-flex;align-items:center">Datei öffnen<input type="file" accept=".json,application/json" style="display:none" onchange="importJson(this)"></label>
+    <button class="btn pri" onclick="closeModal('listModal')" style="margin-left:auto">Schließen</button>
+  </div>
+  <p class="hint">Protokolle werden auf diesem Gerät gespeichert. Mit „Als Datei sichern“ kannst du ein Protokoll auf ein anderes Gerät übertragen.</p>
+</div></div>
+
+<div class="modal" id="sigModal"><div class="mbox">
+  <h3 id="sigTitle">Unterschrift</h3>
+  <canvas id="sigCanvas"></canvas>
+  <div class="row-tools">
+    <button class="btn warn" onclick="sigClear()">Löschen</button>
+    <button class="btn" onclick="closeModal('sigModal')" style="margin-left:auto">Abbrechen</button>
+    <button class="btn pri" onclick="sigDone()">Übernehmen</button>
+  </div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+{
+var APP_VERSION = '%%VERSION%%';
+var LOGO_EH = '%%LOGO_EH%%';
+var LOGO_EK = '%%LOGO_EK%%';
+var FONT_R = '%%FONT_R%%';
+var FONT_B = '%%FONT_B%%';
+%%KUNDEN%%
+
+var ROWS_S1 = 7, ROWS_MS = 29;
+var STORE = 'ek_pruefprotokoll_v1';
+
+var PRUEF_NACH = [['vde600','DIN VDE 0100-600'],['vde105','DIN VDE 0105-100'],['dguv3','DGUV Vorschrift 3'],['betrsichv','Betr.SichV'],['echeck','E-CHECK']];
+var ART = [['neu','Neuanlage'],['erw','Erweiterung'],['aend','Änderung'],['inst','Instandsetzung'],['wdh','Wiederholungsprüfung']];
+var NETZFORM = ['TN-C','TN-S','TN-C-S','TT','IT'];
+var BES = [
+  [['b_auswahl','Auswahl der Betriebsmittel'],['b_trenn','Trenn- und Schaltgeräte'],['b_brand','Brandabschottungen'],['b_gst','Gebäudesystemtechnik'],['b_kabel','Kabel, Leitungen, Stromschienen']],
+  [['b_kennz','Kennzeichnung Stromkreis, Betriebsmittel'],['b_npe','Kennzeichnung N- und PE-Leiter'],['b_leiter','Leiterverbindungen'],['b_schutz','Schutz und Überwachungseinrichtungen'],['b_basis','Basisschutz (Schutz gegen direktes Berühren)']],
+  [['b_zug','Zugänglichkeit'],['b_spa','Schutzpotentialausgleich'],['b_zpa','Zus. örtl. Potentialausgleich'],['b_doku','Dokumentation']]
+];
+var ERP = [
+  [['e_funk','Funktionsprüfung der Anlage'],['e_fi','FI-Schutzschalter (RCD)']],
+  [['e_schutz','Funktion der Schutz-, Sicherheits- und Überwachungseinrichtungen'],['e_dreh','Drehrichtung der Motoren']],
+  [['e_rdf','Rechtsdrehfeld'],['e_sf','Überprüfung Spannungsfall'],['e_gst','Gebäudesystemtechnik']]
+];
+var PA = [['fund','Fundamenterder'],['hwl','Hauptwasserleitung'],['hzg','Heizungsanlage'],['edv','EDV-Anlage'],['ant','Antennenanlage / BK'],
+  ['hes','Haupterdungsschiene'],['hsl','Hauptschutzleiter'],['klima','Klimaanlage'],['tel','Telefonanlage'],['geb','Gebäudekonstruktion'],
+  ['wzz','Wasserzwischenzähler'],['gas','Gasinnenleitung'],['aufz','Aufzugsanlage'],['blitz','Blitzschutzanlage']];
+// Messwert-Spalten: key, Kurzlabel (App), numerisch?
+var COLS = [['nr','Nr.',0],['ziel','Zielbezeichnung',0],['typ','Typ',0],['leiter','Leiter',0],['char','Char.',0],['in','In (A)',1],
+  ['zs','Zs',1],['x2','X2',1],['rohne','Riso ohne',0],['rmit','Riso mit',0],['inar','In/Ar (A)',1],['idn','IΔn',1],['imess','Imess',1],['ausl','Ausl.-Z.',1],['ul','UL≤50V',1],['code','Code',1]];
+
+function emptyRow(){ var r={}; COLS.forEach(function(c){ r[c[0]]=''; }); return r; }
+function rows(n){ var a=[]; for(var i=0;i<n;i++) a.push(emptyRow()); return a; }
+function uid(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function today(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+
+function newState(base){
+  var s = {
+    id: uid(), updated: Date.now(),
+    kunde: {protNr:'Nr. 1', kundenNr:'', auftragNr:'', name:'', zusatz:'', strasse:'', ort:'', anlage:''},
+    s1: {nach:{}, art:{}, beginn:today(), ende:today(), beauftragter:'', pruefer:'', netz:'230 / 400V', netzform:'', netzbetreiber:'',
+      bes:{}, ergBl:false, erp:{}, spf:false, schutzl:false, erdung:'', pa:false, paItems:{},
+      geraete:[{fab:'',typ:''},{fab:'',typ:''},{fab:'',typ:''}], verteiler:'', rows:rows(ROWS_S1),
+      keine:false, maengel:false, maengelText:'', plakette:'', naechste:''},
+    pages: [{anlage:'', verteiler:'', rows:rows(ROWS_MS)}],
+    footer: {uebergabe:false, zustand:false, entspricht:false, nicht:false, odAG:'', odP:'', sigAG:'', sigP:''}
+  };
+  if (base) {
+    s.s1.pruefer = base.s1.pruefer; s.s1.netz = base.s1.netz;
+    s.s1.geraete = JSON.parse(JSON.stringify(base.s1.geraete));
+  }
+  return s;
+}
+
+// ---------- Speicher ----------
+var DB = {current:null, items:{}};
+function loadDB(){
+  try { var raw = localStorage.getItem(STORE); if (raw) DB = JSON.parse(raw); } catch(e) { console.warn(e); }
+  if (!DB.items) DB.items = {};
+}
+function saveDB(){
+  try { localStorage.setItem(STORE, JSON.stringify(DB)); }
+  catch(e) { toast('Speichern fehlgeschlagen – Speicher voll?'); }
+}
+var S;
+var saveT = null;
+function touch(){ S.updated = Date.now(); DB.items[S.id] = S; DB.current = S.id; clearTimeout(saveT); saveT = setTimeout(saveDB, 300); updTop(); }
+
+// ---------- Hilfen ----------
+function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function getP(path){ var o=S, p=path.split('.'); for(var i=0;i<p.length;i++){ if(o==null) return undefined; o=o[p[i]]; } return o; }
+function setP(path,val){ var o=S, p=path.split('.'); for(var i=0;i<p.length-1;i++){ if(o[p[i]]==null) o[p[i]]={}; o=o[p[i]]; } o[p[p.length-1]]=val; }
+function toast(t){ var e=document.getElementById('toast'); e.textContent=t; e.classList.add('show'); clearTimeout(e._t); e._t=setTimeout(function(){e.classList.remove('show');},2200); }
+function fmtD(iso){ if(!iso) return ''; var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso); return m? m[3]+'.'+m[2]+'.'+m[1] : iso; }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+
+function inp(path,label,opt){
+  opt=opt||{};
+  var v=getP(path);
+  return '<label class="f">'+esc(label)+'<input data-p="'+path+'" type="'+(opt.type||'text')+'"'+(opt.im?' inputmode="'+opt.im+'"':'')+(opt.ph?' placeholder="'+esc(opt.ph)+'"':'')+' value="'+esc(v)+'" autocomplete="off"></label>';
+}
+// Checkbox (bool)
+function cb(path,label,cls){
+  return '<div class="chip '+(cls||'')+(getP(path)?' on':'')+'" role="checkbox" tabindex="0" aria-checked="'+(getP(path)?'true':'false')+'" data-cb="'+path+'"><span class="bx"></span>'+esc(label)+'</div>';
+}
+// Auswahl (exklusiv, Wert)
+function opt(path,val,label,cls){
+  var on = getP(path)===val;
+  return '<div class="chip '+(cls||'')+(on?' on':'')+'" role="radio" tabindex="0" aria-checked="'+on+'" data-opt="'+path+'" data-val="'+esc(val)+'"><span class="bx"></span>'+esc(label)+'</div>';
+}
+function ioRow(base,key,label){
+  return '<div class="chk"><span>'+esc(label)+'</span><div class="pair">'+opt(base+'.'+key,'io','i.O.')+opt(base+'.'+key,'nio','n.i.O.','nio')+'</div></div>';
+}
+
+// ---------- Kopf (auf jeder Seite) ----------
+function total(){ return 1 + S.pages.length; }
+function kopf(blatt, anlage){
+  var k=S.kunde;
+  var adr=[k.name,k.zusatz,k.strasse,k.ort].filter(Boolean).map(esc).join(', ');
+  return '<div class="kopf"><div><b>'+esc(k.protNr||'')+'</b> · Kunden-Nr. <b>'+esc(k.kundenNr||'–')+'</b> · Auftrag <b>'+esc(k.auftragNr||'–')+'</b><br>'+
+    (adr? 'Auftraggeber: <b>'+adr+'</b>' : '<i>Noch keine Kundendaten</i>')+'<br>Anlage: <b>'+esc(anlage||k.anlage||'–')+'</b></div><img src="'+LOGO_EK+'" alt="Elektro Krieg"></div>';
+}
+
+// ---------- Messwerttabelle ----------
+function mtable(base, rowsArr, kind){
+  var zsL = kind==='s1' ? 'L-PE' : 'L-N';
+  var x2a = kind==='s1' ? 'Zi(Ω)' : 'Rlo';
+  var x2b = kind==='s1' ? 'Ik(A) L-N' : '<1';
+  var h = '<div class="tw"><table class="mt"><thead>'+
+    '<tr><th class="grp" colspan="2">Stromkreis</th><th class="grp" colspan="2">Leitung / Kabel</th><th class="grp" colspan="4">Überstrom-Schutzeinrichtung F</th><th class="grp" colspan="2">Riso (MΩ)</th><th class="grp" colspan="5">Fehlerstrom-Schutzeinrichtung (RCD)</th><th class="grp">Fehler</th><th class="grp" rowspan="2"></th></tr>'+
+    '<tr><th style="width:62px">Nr.</th><th style="width:260px">Zielbezeichnung</th><th style="width:78px">Typ</th><th style="width:70px">Leiter<br>Anz. x Quers. (mm²)</th><th style="width:52px">Charak&shy;teristik</th><th style="width:46px">In<br>(A)</th><th style="width:56px">Zs(Ω)<br>Ik(A) '+zsL+'</th><th style="width:56px">'+x2a+'<br>'+esc(x2b)+'</th><th style="width:56px">Verbr.<br>ohne</th><th style="width:56px">Verbr.<br>mit</th><th style="width:50px">In/Ar<br>(A)</th><th style="width:46px">IΔn</th><th style="width:50px">Imess</th><th style="width:54px">Ausl.-Z.</th><th style="width:50px">UL≤50V</th><th style="width:46px">code</th></tr></thead><tbody>';
+  rowsArr.forEach(function(r,i){
+    h += '<tr>';
+    COLS.forEach(function(c){
+      h += '<td'+(c[0]==='ziel'?' class="zb"':'')+'><input data-p="'+base+'.rows.'+i+'.'+c[0]+'" value="'+esc(r[c[0]])+'"'+(c[2]?' inputmode="decimal"':'')+' autocomplete="off" aria-label="'+esc(c[1])+' Zeile '+(i+1)+'"></td>';
+    });
+    h += '<td class="act">'+(i>0?'<button class="mini" title="Werte aus der Zeile darüber übernehmen" data-copyrow="'+base+'|'+i+'">↓</button>':'')+'</td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+
+function footerHtml(){
+  return '<div class="sec"><h3>Abschluss (steht auf jeder Seite)</h3><div class="cols3" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">'+
+    '<div><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Auftraggeber</div><div class="chips" style="flex-direction:column;align-items:stretch">'+
+      cb('footer.uebergabe','Gemäß Übergabebericht elektrische Anlage vollständig übernommen')+cb('footer.zustand','Zustandsbericht erhalten')+'</div></div>'+
+    '<div><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Prüfer</div><div class="chips" style="flex-direction:column;align-items:stretch">'+
+      opt('footer.urteil','ja','Die elektrische Anlage entspricht den anerkannten Regeln der Elektrotechnik')+opt('footer.urteil','nein','Die elektrische Anlage entspricht nicht den anerkannten Regeln der Elektrotechnik','nio')+'</div></div>'+
+    '</div></div>';
+}
+
+// ---------- Render ----------
+function render(){
+  var s1=S.s1, k=S.kunde, h='';
+  // Kundendaten
+  h += '<section class="sheet"><div class="sheet-h"><h2>Kundendaten</h2><span class="blatt">erscheint im Kopf jeder Seite</span></div><div class="sec"><div class="grid">'+
+    '<div class="ac">'+inp('kunde.name','Auftraggeber (Name / Firma)',{ph:'Tippen zum Suchen …'})+'<div class="ac-list" id="acList"></div></div>'+
+    inp('kunde.zusatz','Zusatz (z. B. Abteilung)')+inp('kunde.strasse','Straße')+inp('kunde.ort','PLZ Ort')+
+    inp('kunde.kundenNr','Kunden-Nr.')+inp('kunde.auftragNr','Auftrag-Nr.')+inp('kunde.protNr','Protokoll-Nr.')+inp('kunde.anlage','Anlage')+
+    '</div></div></section>';
+
+  // Seite 1
+  h += '<section class="sheet" id="seite1"><div class="sheet-h"><h2>Seite 1 – Allgemeine Angaben</h2><span class="blatt">Blatt 1 von '+total()+'</span></div>'+kopf(1);
+  h += '<div class="sec"><h3>Prüfung nach</h3><div class="chips">'+PRUEF_NACH.map(function(x){return cb('s1.nach.'+x[0],x[1]);}).join('')+'</div>'+
+       '<div class="chips" style="margin-top:8px">'+ART.map(function(x){return cb('s1.art.'+x[0],x[1]);}).join('')+'</div></div>';
+  h += '<div class="sec"><div class="grid">'+inp('s1.beginn','Beginn der Prüfung',{type:'date'})+inp('s1.ende','Ende der Prüfung',{type:'date'})+
+       inp('s1.beauftragter','Beauftragter des Auftraggebers')+inp('s1.pruefer','Prüfer')+inp('s1.netz','Netz')+inp('s1.netzbetreiber','Netzbetreiber')+'</div>'+
+       '<div style="margin-top:10px;font-size:12px;color:var(--muted)">Netzform</div><div class="chips" style="margin-top:4px">'+NETZFORM.map(function(n){return opt('s1.netzform',n,n);}).join('')+'</div></div>';
+  h += '<div class="sec"><h3>Besichtigen</h3><div class="cols3">'+BES.map(function(col,ci){
+        return '<div>'+col.map(function(x){return ioRow('s1.bes',x[0],x[1]);}).join('')+(ci===2?'<div class="chk"><span>siehe Ergänzungsblätter</span>'+cb('s1.ergBl','ja')+'</div>':'')+'</div>';
+       }).join('')+'</div></div>';
+  h += '<div class="sec"><h3>Erproben</h3><div class="cols3">'+ERP.map(function(col){
+        return '<div>'+col.map(function(x){return ioRow('s1.erp',x[0],x[1]);}).join('')+'</div>';
+       }).join('')+'</div></div>';
+  h += '<div class="sec"><h3>Messen</h3><div class="chips">'+cb('s1.spf','Spannungsfall nachgewiesen')+cb('s1.schutzl','Durchgängigkeit des Schutzleiters ≤1Ω')+cb('s1.pa','Durchgängigkeit Potentialausgleich (≤1Ω nachgewiesen)')+'</div>'+
+       '<div class="grid" style="margin-top:10px">'+inp('s1.erdung','Erdungswiderstand R(E) in Ω',{im:'decimal'})+'</div>'+
+       '<div style="margin-top:10px;font-size:12px;color:var(--muted)">Potentialausgleich</div><div class="chips" style="margin-top:4px">'+PA.map(function(x){return cb('s1.paItems.'+x[0],x[1]);}).join('')+'</div></div>';
+  h += '<div class="sec"><h3>Verwendete Messgeräte nach DIN VDE 0413</h3><div class="grid g3">'+
+       [0,1,2].map(function(i){return inp('s1.geraete.'+i+'.fab','Fabrikat '+(i+1))+inp('s1.geraete.'+i+'.typ','Typ '+(i+1));}).join('')+'</div></div>';
+  h += '<div class="sec"><h3>Messwerte Seite 1</h3><div class="grid" style="margin-bottom:10px">'+inp('s1.verteiler','Stromkreisverteiler Nr.')+'</div>'+mtable('s1',s1.rows,'s1')+'</div>';
+  h += '<div class="sec"><h3>Prüfergebnis</h3><div class="chips">'+opt('s1.ergebnis','keine','keine Mängel festgestellt')+opt('s1.ergebnis','maengel','Mängel festgestellt','nio')+'</div>'+
+       '<div class="grid" style="margin-top:10px">'+inp('s1.maengelText','Mängel (Beschreibung)')+inp('s1.naechste','Nächster Prüftermin',{ph:'z. B. 11.2030'})+'</div>'+
+       '<div style="margin-top:10px;font-size:12px;color:var(--muted)">Prüfplakette angebracht</div><div class="chips" style="margin-top:4px">'+opt('s1.plakette','ja','Ja')+opt('s1.plakette','nein','Nein','nio')+'</div></div>';
+  h += footerHtml();
+  h += '</section>';
+
+  // Messseiten
+  S.pages.forEach(function(pg,pi){
+    var base='pages.'+pi;
+    h += '<section class="sheet" id="seite'+(pi+2)+'"><div class="sheet-h"><h2>Seite '+(pi+2)+' – Messwerte</h2><span class="blatt">Blatt '+(pi+2)+' von '+total()+'</span></div>'+kopf(pi+2,pg.anlage);
+    h += '<div class="sec"><div class="grid" style="margin-bottom:10px">'+inp(base+'.verteiler','Stromkreisverteiler Nr.')+inp(base+'.anlage','Anlage (nur diese Seite)',{ph:k.anlage||'wie Kundendaten'})+'</div>'+mtable(base,pg.rows,'ms')+
+         '<div class="row-tools"><button class="btn pri" data-dup="'+pi+'">Seite duplizieren</button><button class="btn" data-clr="'+pi+'">Messwerte leeren</button>'+
+         (S.pages.length>1?'<button class="btn warn" data-del="'+pi+'">Seite löschen</button>':'')+'</div></div></section>';
+  });
+  h += '<div class="addbar"><button class="btn big" onclick="addPage()">+ Leere Messwertseite</button></div>';
+
+  // Unterschriften
+  h += '<section class="sheet"><div class="sheet-h"><h2>Unterschriften</h2><span class="blatt">auf jeder Seite</span></div><div class="sec"><div class="sigs">'+
+       sigHtml('AG','Auftraggeber')+sigHtml('P','Prüfer')+'</div></div></section>';
+  h += '<div class="addbar"><button class="btn big pri" onclick="makePdf()">PDF erstellen</button></div>';
+  document.getElementById('app').innerHTML = h;
+  updTop();
+}
+function sigHtml(key,label){
+  var v=S.footer['sig'+key];
+  return '<div>'+inp('footer.od'+key,'Ort, Datum – '+label,{ph:'Meiningen, '+fmtD(today())})+
+    '<div class="sigbox" style="margin-top:8px" data-sig="'+key+'">'+(v?'<img src="'+v+'" alt="Unterschrift '+label+'">':'<span>Hier tippen zum Unterschreiben</span>')+'</div></div>';
+}
+function updTop(){
+  var k=S.kunde; document.getElementById('topSub').textContent = (k.name||'Neues Protokoll')+(k.anlage?' · '+k.anlage:'');
+}
+
+// ---------- Ereignisse ----------
+var app = document.getElementById('app');
+app.addEventListener('input', function(e){
+  var p=e.target.getAttribute('data-p'); if(!p) return;
+  setP(p, e.target.value); touch();
+  if (p==='kunde.name') acShow(e.target.value);
+  if (p.indexOf('kunde.')===0 || /\.anlage$/.test(p)) refreshKopf();
+});
+function refreshKopf(){
+  var ks=document.querySelectorAll('.kopf');
+  ks.forEach(function(el,i){ var tmp=document.createElement('div'); tmp.innerHTML=kopf(i+1, i>0? S.pages[i-1].anlage : ''); el.replaceWith(tmp.firstChild); });
+}
+function toggleChip(el){
+  if (el.hasAttribute('data-cb')) {
+    var p=el.getAttribute('data-cb'); var v=!getP(p); setP(p,v);
+    el.classList.toggle('on',v); el.setAttribute('aria-checked',v); touch();
+  } else if (el.hasAttribute('data-opt')) {
+    var p2=el.getAttribute('data-opt'), val=el.getAttribute('data-val');
+    var nv = getP(p2)===val ? '' : val; setP(p2,nv);
+    document.querySelectorAll('[data-opt="'+p2+'"]').forEach(function(o){ var on=o.getAttribute('data-val')===nv; o.classList.toggle('on',on); o.setAttribute('aria-checked',on); });
+    touch();
+  }
+}
+app.addEventListener('click', function(e){
+  var t=e.target.closest('[data-cb],[data-opt],[data-dup],[data-del],[data-clr],[data-copyrow],[data-sig]'); if(!t) return;
+  if (t.hasAttribute('data-cb')||t.hasAttribute('data-opt')) return toggleChip(t);
+  if (t.hasAttribute('data-dup')) { var i=+t.getAttribute('data-dup'); var c=JSON.parse(JSON.stringify(S.pages[i])); S.pages.splice(i+1,0,c); touch(); render(); scrollToSheet(i+3); toast('Seite '+(i+2)+' dupliziert'); return; }
+  if (t.hasAttribute('data-del')) { var d=+t.getAttribute('data-del'); if(!confirm('Seite '+(d+2)+' wirklich löschen?')) return; S.pages.splice(d,1); touch(); render(); return; }
+  if (t.hasAttribute('data-clr')) { var c2=+t.getAttribute('data-clr'); if(!confirm('Alle Messwerte auf Seite '+(c2+2)+' leeren? Nr. und Zielbezeichnung bleiben stehen.')) return;
+    S.pages[c2].rows.forEach(function(r){ COLS.forEach(function(c){ if(c[0]!=='nr'&&c[0]!=='ziel'&&c[0]!=='typ'&&c[0]!=='leiter'&&c[0]!=='char'&&c[0]!=='in') r[c[0]]=''; }); }); touch(); render(); scrollToSheet(c2+2); return; }
+  if (t.hasAttribute('data-copyrow')) { var a=t.getAttribute('data-copyrow').split('|'); var arr=getP(a[0]+'.rows'), ri=+a[1];
+    COLS.forEach(function(c){ if(c[0]==='nr'||c[0]==='ziel') return; if(!arr[ri][c[0]]) arr[ri][c[0]]=arr[ri-1][c[0]]; });
+    var tr=t.closest('tr'); tr.querySelectorAll('input').forEach(function(x){ x.value=getP(x.getAttribute('data-p'))||''; }); touch(); return; }
+  if (t.hasAttribute('data-sig')) openSig(t.getAttribute('data-sig'));
+});
+app.addEventListener('keydown', function(e){
+  if ((e.key===' '||e.key==='Enter') && e.target.matches('.chip')) { e.preventDefault(); toggleChip(e.target); }
+});
+function scrollToSheet(n){ var el=document.getElementById('seite'+n); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
+window.addPage = function(){ S.pages.push({anlage:'',verteiler:'',rows:rows(ROWS_MS)}); touch(); render(); scrollToSheet(S.pages.length+1); };
+
+// ---------- Kunden-Suche ----------
+function acShow(q){
+  var box=document.getElementById('acList'); if(!box) return;
+  q=(q||'').toLowerCase().trim();
+  if (q.length<2) { box.style.display='none'; return; }
+  var hits=KUNDEN.filter(function(k){ return (k.name+' '+k.ort+' '+k.addr).toLowerCase().indexOf(q)>=0; }).slice(0,12);
+  if (!hits.length) { box.style.display='none'; return; }
+  box.innerHTML = hits.map(function(k){ return '<div data-k="'+KUNDEN.indexOf(k)+'">'+esc(k.name)+'<small>'+esc(k.addr+', '+k.plz+' '+k.ort)+'</small></div>'; }).join('');
+  box.style.display='block';
+}
+document.addEventListener('click', function(e){
+  var it=e.target.closest('#acList [data-k]');
+  var box=document.getElementById('acList');
+  if (it) { var k=KUNDEN[+it.getAttribute('data-k')]; S.kunde.name=k.name; S.kunde.strasse=k.addr; S.kunde.ort=(k.plz+' '+k.ort).trim(); touch(); render(); return; }
+  if (box && !e.target.closest('.ac')) box.style.display='none';
+});
+
+// ---------- Unterschrift ----------
+var sigKey=null, sigCtx=null, sigDirty=false, drawing=false, last=null;
+var cv=document.getElementById('sigCanvas');
+function openSig(key){
+  sigKey=key; document.getElementById('sigTitle').textContent='Unterschrift '+(key==='AG'?'Auftraggeber':'Prüfer');
+  openModal('sigModal');
+  setTimeout(function(){
+    var r=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+    cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr);
+    sigCtx=cv.getContext('2d'); sigCtx.scale(dpr,dpr); sigCtx.lineWidth=2.4; sigCtx.lineCap='round'; sigCtx.lineJoin='round'; sigCtx.strokeStyle='#0b2a6b';
+    sigDirty=false;
+  },30);
+}
+function pt(e){ var r=cv.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+cv.addEventListener('pointerdown',function(e){ drawing=true; last=pt(e); cv.setPointerCapture(e.pointerId); sigCtx.beginPath(); sigCtx.arc(last.x,last.y,1.1,0,6.3); sigCtx.fillStyle='#0b2a6b'; sigCtx.fill(); sigDirty=true; });
+cv.addEventListener('pointermove',function(e){ if(!drawing) return; var p=pt(e); sigCtx.beginPath(); sigCtx.moveTo(last.x,last.y); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); last=p; sigDirty=true; });
+['pointerup','pointercancel','pointerleave'].forEach(function(ev){ cv.addEventListener(ev,function(){ drawing=false; }); });
+window.sigClear = function(){ sigCtx.clearRect(0,0,cv.width,cv.height); sigDirty=false; S.footer['sig'+sigKey]=''; touch(); render(); };
+window.sigDone = function(){
+  if (sigDirty) S.footer['sig'+sigKey]=trimCanvas(cv);
+  touch(); closeModal('sigModal'); render();
+};
+function trimCanvas(c){
+  var ctx=c.getContext('2d'), w=c.width, h=c.height, d=ctx.getImageData(0,0,w,h).data, x0=w,y0=h,x1=0,y1=0;
+  for(var y=0;y<h;y+=2) for(var x=0;x<w;x+=2){ if(d[(y*w+x)*4+3]>0){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; } }
+  if (x1<=x0) return '';
+  var pad=8; x0=Math.max(0,x0-pad); y0=Math.max(0,y0-pad); x1=Math.min(w,x1+pad); y1=Math.min(h,y1+pad);
+  var o=document.createElement('canvas'), sc=Math.min(1,600/(x1-x0)); o.width=Math.round((x1-x0)*sc); o.height=Math.round((y1-y0)*sc);
+  o.getContext('2d').drawImage(c,x0,y0,x1-x0,y1-y0,0,0,o.width,o.height);
+  return o.toDataURL('image/png');
+}
+
+// ---------- Protokoll-Liste ----------
+window.openList = function(){
+  var arr=Object.keys(DB.items).map(function(k){return DB.items[k];}).sort(function(a,b){return b.updated-a.updated;});
+  document.getElementById('plist').innerHTML = arr.map(function(p){
+    var d=new Date(p.updated);
+    return '<div><span class="t"><b>'+esc(p.kunde.name||'Ohne Kunde')+'</b>'+(p.id===S.id?' <i>(geöffnet)</i>':'')+'<small>'+esc([p.kunde.anlage,p.s1.verteiler,(1+p.pages.length)+' Blatt'].filter(Boolean).join(' · '))+' · geändert '+d.toLocaleDateString('de-DE')+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+'</small></span>'+
+      '<button class="btn" data-open="'+p.id+'">Öffnen</button><button class="btn" data-copy="'+p.id+'" title="Kopie als neues Protokoll">Kopie</button><button class="btn warn" data-rm="'+p.id+'" aria-label="Löschen">✕</button></div>';
+  }).join('') || '<p class="hint">Noch keine Protokolle gespeichert.</p>';
+  openModal('listModal');
+};
+document.getElementById('plist').addEventListener('click',function(e){
+  var b=e.target.closest('button'); if(!b) return;
+  if (b.dataset.open) { S=DB.items[b.dataset.open]; DB.current=S.id; saveDB(); closeModal('listModal'); render(); window.scrollTo(0,0); }
+  else if (b.dataset.copy) { var c=JSON.parse(JSON.stringify(DB.items[b.dataset.copy])); c.id=uid(); c.footer.sigAG=''; c.footer.sigP=''; S=c; touch(); saveDB(); closeModal('listModal'); render(); window.scrollTo(0,0); toast('Kopie angelegt (ohne Unterschriften)'); }
+  else if (b.dataset.rm) { if(!confirm('Protokoll endgültig löschen? Das kann nicht rückgängig gemacht werden.')) return; delete DB.items[b.dataset.rm];
+    if (b.dataset.rm===S.id) { S=newState(S); DB.items[S.id]=S; DB.current=S.id; render(); } saveDB(); openList(); }
+});
+window.newProtocol = function(){
+  if (!confirm('Neues leeres Protokoll anlegen? Das aktuelle bleibt unter „Protokolle“ gespeichert.\n\nPrüfer, Netz und Messgeräte werden übernommen.')) return;
+  saveDB(); S=newState(S); touch(); saveDB(); render(); window.scrollTo(0,0);
+};
+function fileBase(){
+  var k=S.kunde; var n=(k.name||'Protokoll')+(S.s1.verteiler?'_'+S.s1.verteiler:'');
+  return ('Pruefprotokoll_'+n.replace(/[^\wÀ-ſ\- ]+/g,'').trim().replace(/\s+/g,'_')+'_'+fmtD(S.s1.beginn||today()).replace(/\./g,'-')).slice(0,120);
+}
+function downloadBlob(blob,name){
+  var url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },2000);
+}
+window.exportJson = function(){ downloadBlob(new Blob([JSON.stringify(S)],{type:'application/json'}), fileBase()+'.json'); };
+window.importJson = function(el){
+  var f=el.files[0]; if(!f) return; var r=new FileReader();
+  r.onload=function(){ try{ var o=JSON.parse(r.result); if(!o.kunde||!o.s1||!o.pages) throw new Error('Kein Prüfprotokoll');
+      if (DB.items[o.id] && !confirm('Dieses Protokoll gibt es auf dem Gerät schon. Überschreiben?')) o.id=uid();
+      S=o; touch(); saveDB(); closeModal('listModal'); render(); toast('Protokoll geladen'); }
+    catch(e){ toast('Datei konnte nicht gelesen werden'); } el.value=''; };
+  r.readAsText(f);
+};
+
+// ================= PDF =================
+var M=8, PW=210, W=PW-2*M;
+function setF(doc,b,sz){ doc.setFont('LS', b?'bold':'normal'); doc.setFontSize(sz); }
+function box(doc,x,y,w,h){ doc.rect(x,y,w,h); }
+function tx(doc,t,x,y,o){ doc.text(String(t==null?'':t),x,y,o||{}); }
+function fit(doc,t,w){ t=String(t==null?'':t); if(doc.getTextWidth(t)<=w) return t; while(t.length>1&&doc.getTextWidth(t+'…')>w) t=t.slice(0,-1); return t+'…'; }
+function cbx(doc,x,y,on){ doc.setLineWidth(0.25); doc.rect(x,y-2.6,2.9,2.9); if(on){ doc.setLineWidth(0.5); doc.line(x+0.5,y-1.2,x+1.2,y-0.4); doc.line(x+1.2,y-0.4,x+2.5,y-2.2); doc.setLineWidth(0.25);} }
+
+function pdfHeader(doc,blatt,anlage){
+  var k=S.kunde, y=M;
+  doc.setDrawColor(0); doc.setLineWidth(0.3);
+  box(doc,M,y,W,15);
+  setF(doc,1,14); tx(doc,'Prüfung elektrischer Anlagen',M+2,y+6.5);
+  setF(doc,0,9); tx(doc,'Prüfprotokoll',M+2,y+12);
+  doc.addImage(LOGO_EH,'JPEG',M+W-46,y+2,44,11.5);
+  y+=15;
+  box(doc,M,y,W/2,6); box(doc,M+W/2,y,W/2,6);
+  setF(doc,1,10); tx(doc,k.protNr||'',M+2,y+4.3);
+  setF(doc,0,9); tx(doc,'Blatt  '+blatt+'  von  '+total(),M+45,y+4.3);
+  tx(doc,'Kunden Nr.:',M+W/2+2,y+4.3); setF(doc,1,9); tx(doc,k.kundenNr||'',M+W/2+24,y+4.3);
+  y+=6;
+  setF(doc,0,9);
+  box(doc,M,y,W/2,5); box(doc,M+W/2,y,W/2,5);
+  tx(doc,'Auftraggeber:   Auftrag Nr.: ',M+2,y+3.6); setF(doc,1,9); tx(doc,k.auftragNr||'',M+48,y+3.6);
+  setF(doc,0,9); tx(doc,'Auftragnehmer',M+W/2+2,y+3.6);
+  y+=5;
+  box(doc,M,y,W/2,22); box(doc,M+W/2,y,W/2,22);
+  setF(doc,0,10);
+  var lines=[k.zusatz,k.name,k.strasse,k.ort];
+  if(!k.zusatz) lines=[k.name,k.strasse,k.ort,''];
+  lines.forEach(function(l,i){ tx(doc,fit(doc,l||'',W/2-4),M+2,y+5+i*5); });
+  doc.addImage(LOGO_EK,'JPEG',M+W/2+2,y+1.2,62,12.2);
+  setF(doc,0,9); tx(doc,'Landwehrstraße 2',M+W/2+2,y+16.6); tx(doc,'98617 Meiningen',M+W/2+2,y+20.6);
+  y+=22;
+  box(doc,M,y,W,6);
+  setF(doc,0,9); tx(doc,'Anlage:',M+2,y+4.2); setF(doc,1,10); tx(doc,fit(doc,anlage||k.anlage||'',W-20),M+16,y+4.2);
+  return y+6;
+}
+
+function pdfFooter(doc,y){
+  var f=S.footer, h=40, half=W/2;
+  y = Math.max(y, 297-M-h);
+  doc.setLineWidth(0.3); box(doc,M,y,half,h); box(doc,M+half,y,half,h);
+  setF(doc,1,9); tx(doc,'Auftraggeber',M+2,y+4.2); tx(doc,'Prüfer',M+half+2,y+4.2);
+  setF(doc,0,6.6);
+  cbx(doc,M+2,y+9.5,f.uebergabe); tx(doc,'Gemäß Übergabebericht elektrische Anlage vollständig übernommen',M+6,y+9.3);
+  cbx(doc,M+2,y+14,f.zustand); tx(doc,'Zustandsbericht erhalten',M+6,y+13.8);
+  cbx(doc,M+half+2,y+9.5,f.urteil==='ja'); tx(doc,'Die elektrische Anlage entspricht den anerkannten Regeln der Elektrotechnik',M+half+6,y+9.3);
+  cbx(doc,M+half+2,y+14,f.urteil==='nein'); tx(doc,'Die elektrische Anlage entspricht nicht den anerkannten Regeln der Elektrotechnik',M+half+6,y+13.8);
+  [[M,f.odAG,f.sigAG],[M+half,f.odP,f.sigP]].forEach(function(s){
+    var lx=s[0]+3, lw=half-6, ly=y+h-5;
+    doc.setLineWidth(0.2); doc.line(lx,ly,lx+lw,ly);
+    setF(doc,0,6.5); tx(doc,'Ort, Datum, Unterschrift',lx,ly+3);
+    setF(doc,0,9); if(s[1]) tx(doc,fit(doc,s[1],38),lx,ly-1.5);
+    if (s[2]) { try { var p=doc.getImageProperties(s[2]); var mh=18, mw=lw-42, r=Math.min(mw/p.width,mh/p.height); doc.addImage(s[2],'PNG',lx+40,ly-0.8-p.height*r,p.width*r,p.height*r); } catch(e){} }
+  });
+}
+
+// Spaltenbreiten Messwerttabelle (Summe = W = 194)
+var TW=[10,48,14,13,10,8,10.5,10.5,8.5,8.5,8.5,8,9,10,8,9];
+(function(){ var s=TW.reduce(function(a,b){return a+b;},0); TW[TW.length-1]+=W-s; })();
+function pdfTable(doc,y,rowsArr,kind,rh){
+  var x0=M, xs=[x0]; TW.forEach(function(w,i){ xs.push(xs[i]+w); });
+  var hdrH=13;
+  doc.setLineWidth(0.25);
+  // Gruppen
+  var groups=[[0,2,'Stromkreis'],[2,4,'Leitung / Kabel'],[4,8,'Überstrom-Schutzeinrichtung F'],[8,10,'Riso (MΩ)'],[10,15,'Fehlerstrom-Schutzeinrichtung (RCD)'],[15,16,'Fehler']];
+  setF(doc,1,6.3);
+  groups.forEach(function(g){ box(doc,xs[g[0]],y,xs[g[1]]-xs[g[0]],4); tx(doc,fit(doc,g[2],xs[g[1]]-xs[g[0]]-1),(xs[g[0]]+xs[g[1]])/2,y+2.9,{align:'center'}); });
+  var zsL = kind==='s1'?'L-PE':'L-N';
+  var sub=[['Nr.'],['Zielbezeichnung'],['Typ'],['Leiter','Anz. x Quers.','(mm²)'],['Charak-','teristik'],['In','(A)'],['Zs(Ω)','Ik(A)',zsL],
+    kind==='s1'?['Zi(Ω)','Ik(A)','L-N']:['Rlo','<1'],['Verbr.','ohne'],['Verbr.','mit'],['In/Ar','(A)'],['IΔn'],['Imess'],['Ausl.-Z.'],['UL','≤50V'],['code']];
+  setF(doc,0,5.6);
+  sub.forEach(function(lines,i){ box(doc,xs[i],y+4,TW[i],hdrH-4); lines.forEach(function(l,j){ tx(doc,l,xs[i]+TW[i]/2,y+7+j*2.6,{align:'center'}); }); });
+  y+=hdrH;
+  setF(doc,0,8);
+  rowsArr.forEach(function(r){
+    COLS.forEach(function(c,i){
+      box(doc,xs[i],y,TW[i],rh);
+      var v=r[c[0]]; if(v===''||v==null) return;
+      if (c[0]==='ziel') tx(doc,fit(doc,v,TW[i]-1.6),xs[i]+0.8,y+rh/2+1.1);
+      else tx(doc,fit(doc,v,TW[i]-1),xs[i]+TW[i]/2,y+rh/2+1.1,{align:'center'});
+    });
+    y+=rh;
+  });
+  return y;
+}
+
+function pdfSeite1(doc){
+  var s=S.s1, y=pdfHeader(doc,1,''), L=5.2;
+  function line(h){ box(doc,M,y,W,h||L); }
+  function lab(t,x,b,sz){ setF(doc,b,sz||8); tx(doc,t,x,y+(L/2)+1.1); }
+  doc.setLineWidth(0.25);
+  // Pruefung nach
+  line(); lab('Prüfung nach:',M+2,1);
+  var px=M+27; PRUEF_NACH.forEach(function(p){ cbx(doc,px,y+L/2+1.3,s.nach[p[0]]); lab(p[1],px+4); px+= doc.getTextWidth(p[1])+10; });
+  y+=L; line();
+  px=M+2; ART.forEach(function(p){ cbx(doc,px,y+L/2+1.3,s.art[p[0]]); lab(p[1],px+4); px+=doc.getTextWidth(p[1])+11; });
+  y+=L;
+  // Beginn / Ende / Beauftragter / Pruefer
+  var c2=M+64, c3=M+132;
+  box(doc,M,y,c2-M,L*2); box(doc,c2,y,c3-c2,L*2); box(doc,c3,y,M+W-c3,L*2);
+  lab('Beginn der Prüfung:',M+2); lab(fmtD(s.beginn),M+32,1);
+  lab('Beauftragter des Auftraggebers:',c2+2); lab('Prüfer:',c3+2);
+  y+=L; lab('Ende der Prüfung:',M+2); lab(fmtD(s.ende),M+32,1);
+  setF(doc,1,8); tx(doc,fit(doc,s.beauftragter,c3-c2-4),c2+2,y+L/2+1.1); tx(doc,fit(doc,s.pruefer,M+W-c3-4),c3+2,y+L/2+1.1);
+  y+=L; line();
+  lab('Netz '+(s.netz||''),M+2,1); lab('Netzform',M+64);
+  px=M+80; NETZFORM.forEach(function(n){ lab(n,px); var w=doc.getTextWidth(n); cbx(doc,px+w+1.5,y+L/2+1.3,s.netzform===n); px+=w+12; });
+  y+=L; line(); lab('Netzbetreiber:',M+2); lab(s.netzbetreiber||'',M+24,1);
+  y+=L;
+  // Besichtigen / Erproben: 3 Spalten
+  var cw=W/3, colX=[M,M+cw,M+2*cw];
+  function ioCols(rowsDef, store, extra){
+    var n=Math.max.apply(null,rowsDef.map(function(c){return c.length;}))+(extra?0:0);
+    for (var r=0;r<n;r++){
+      line();
+      rowsDef.forEach(function(col,ci){
+        var it=col[r], cx=colX[ci];
+        if (ci>0) doc.line(cx,y,cx,y+L);
+        if (it){ setF(doc,0,7); var lw=cw-14; var t=it[1];
+          var parts = doc.splitTextToSize(t,lw);
+          if (parts.length>1){ setF(doc,0,6); parts=doc.splitTextToSize(t,lw); tx(doc,parts[0],cx+1.5,y+2.2); tx(doc,parts[1]||'',cx+1.5,y+4.6); }
+          else tx(doc,t,cx+1.5,y+L/2+1.1);
+          cbx(doc,cx+cw-12,y+L/2+1.3,store[it[0]]==='io'); cbx(doc,cx+cw-5.5,y+L/2+1.3,store[it[0]]==='nio'); }
+        else if (extra && ci===2 && r===col.length){ setF(doc,0,7); tx(doc,'siehe Ergänzungsblätter',cx+1.5,y+L/2+1.1); cbx(doc,cx+cw-12,y+L/2+1.3,s.ergBl); }
+      });
+      y+=L;
+    }
+  }
+  function ioHeader(title){
+    line(); lab(title,M+2,1); setF(doc,0,6);
+    colX.forEach(function(cx,i){ if(i>0) doc.line(cx,y,cx,y+L); tx(doc,'i.O.',cx+cw-10.5,y+3.4,{align:'center'}); tx(doc,'n.i.O.',cx+cw-4,y+3.4,{align:'center'}); });
+    y+=L;
+  }
+  ioHeader('Besichtigen'); ioCols(BES,s.bes,true);
+  ioHeader('Erproben'); ioCols(ERP,s.erp,false);
+  // Messen
+  line(); lab('Messen',M+2,1); y+=L;
+  line(); cbx(doc,M+2,y+L/2+1.3,s.spf); lab('Spannungsfall nachgewiesen',M+6);
+  cbx(doc,M+64,y+L/2+1.3,s.schutzl); lab('Durchgängigkeit des Schutzleiters ≤1Ω',M+68);
+  lab('Erdungswiderstand R',M+130); var ew=doc.getTextWidth('Erdungswiderstand R'); setF(doc,0,5.5); tx(doc,'E',M+130+ew+0.2,y+L/2+2); lab(': '+(s.erdung?s.erdung+' Ω':''),M+132+ew,1);
+  y+=L; line(); cbx(doc,M+2,y+L/2+1.3,s.pa); lab('Durchgängigkeit Potentialausgleich (≤1Ω nachgewiesen)',M+6);
+  y+=L;
+  var pcw=W/5;
+  for (var r=0;r<3;r++){ line();
+    for (var c=0;c<5;c++){ var it=PA[r*5+c]; if(!it) continue; var cx=M+c*pcw; cbx(doc,cx+2,y+L/2+1.3,s.paItems[it[0]]); lab(it[1],cx+6); }
+    y+=L; }
+  // Messgeraete
+  var gw=(W-40)/3;
+  box(doc,M,y,40,L*2); setF(doc,1,8); tx(doc,'Verwendete Messgeräte',M+2,y+L/2+1.1); setF(doc,0,7); tx(doc,'nach DIN VDE 0413',M+2,y+L+L/2+1.1);
+  [0,1,2].forEach(function(i){ var gx=M+40+i*gw; box(doc,gx,y,gw,L*2);
+    setF(doc,0,8); tx(doc,'Fabrikat:',gx+2,y+L/2+1.1); tx(doc,'Typ:',gx+2,y+L+L/2+1.1);
+    setF(doc,1,8); tx(doc,fit(doc,s.geraete[i].fab,gw-20),gx+17,y+L/2+1.1); tx(doc,fit(doc,s.geraete[i].typ,gw-20),gx+17,y+L+L/2+1.1); });
+  y+=2*L;
+  line(); lab('Messen',M+2,1); lab('Stromkreisverteiler Nr.:',M+40); lab(s.verteiler||'',M+75,1);
+  y+=L;
+  y=pdfTable(doc,y,s.rows,'s1',4.8);
+  // Pruefergebnis
+  var rh=5;
+  box(doc,M,y,W,rh*2);
+  setF(doc,1,8); tx(doc,'Prüfergebnis:',M+2,y+3.6);
+  setF(doc,0,8);
+  tx(doc,'keine Mängel festgestellt',M+24,y+3.6); cbx(doc,M+64,y+3.8,s.ergebnis==='keine');
+  tx(doc,'Mängel festgestellt',M+24,y+rh+3.6); cbx(doc,M+64,y+rh+3.8,s.ergebnis==='maengel');
+  tx(doc,'Prüfplakette angebracht',M+70,y+3.6); tx(doc,'Ja',M+104,y+3.6); cbx(doc,M+113,y+3.8,s.plakette==='ja');
+  tx(doc,'Nein',M+104,y+rh+3.6); cbx(doc,M+113,y+rh+3.8,s.plakette==='nein');
+  setF(doc,0,8); tx(doc,'nächster Prüftermin:',M+W-46,y+3.6); setF(doc,1,9); tx(doc,s.naechste||'',M+W-46,y+rh+3.8);
+  y+=rh*2;
+  if (s.maengelText){ setF(doc,0,8); var ml=doc.splitTextToSize(s.maengelText,W-26).slice(0,3); box(doc,M,y,W,ml.length*3.6+1.8); setF(doc,1,8); tx(doc,'Mängel:',M+2,y+3.6); setF(doc,0,8); tx(doc,ml,M+24,y+3.6); y+=ml.length*3.6+1.8; }
+  pdfFooter(doc,y+2);
+}
+
+function pdfMessseite(doc,pg,i){
+  var y=pdfHeader(doc,i+2,pg.anlage), L=5.2;
+  box(doc,M,y,W,L); setF(doc,1,8); tx(doc,'Messen',M+2,y+L/2+1.1); setF(doc,0,8); tx(doc,'Stromkreisverteiler Nr.:',M+40,y+L/2+1.1); setF(doc,1,8); tx(doc,pg.verteiler||'',M+75,y+L/2+1.1);
+  y+=L;
+  var avail = 297-M-40-2-y-13;
+  var rh = Math.min(6.2, avail/pg.rows.length);
+  y=pdfTable(doc,y,pg.rows,'ms',rh);
+  pdfFooter(doc,y+2);
+}
+
+window.makePdf = async function(){
+  var btn=document.getElementById('btnPdf'); btn.disabled=true; btn.textContent='PDF wird erstellt …';
+  try {
+    if (!window.jspdf) throw new Error('PDF-Bibliothek nicht geladen. Einmal mit Internet öffnen.');
+    var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
+    doc.addFileToVFS('LS-R.ttf',FONT_R); doc.addFont('LS-R.ttf','LS','normal');
+    doc.addFileToVFS('LS-B.ttf',FONT_B); doc.addFont('LS-B.ttf','LS','bold');
+    doc.setProperties({title:'Prüfprotokoll '+(S.kunde.name||''),author:'Elektro Krieg Meiningen'});
+    pdfSeite1(doc);
+    S.pages.forEach(function(pg,i){ doc.addPage(); pdfMessseite(doc,pg,i); });
+    var blob=doc.output('blob'), name=fileBase()+'.pdf';
+    var file = (typeof File!=='undefined') ? new File([blob],name,{type:'application/pdf'}) : null;
+    if (file && navigator.canShare && navigator.canShare({files:[file]}) && /iPad|iPhone|iPod|Android/i.test(navigator.userAgent+(navigator.maxTouchPoints>1?' iPad':''))) {
+      try { await navigator.share({files:[file],title:name}); }
+      catch(e){ if (e.name!=='AbortError') downloadBlob(blob,name); }
+    } else downloadBlob(blob,name);
+  } catch(e){ console.error(e); alert('Fehler beim Erstellen der PDF: '+e.message); }
+  btn.disabled=false; btn.textContent='PDF erstellen';
+};
+window.__pdfTest = function(){ var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'}); doc.addFileToVFS('LS-R.ttf',FONT_R); doc.addFont('LS-R.ttf','LS','normal'); doc.addFileToVFS('LS-B.ttf',FONT_B); doc.addFont('LS-B.ttf','LS','bold'); pdfSeite1(doc); S.pages.forEach(function(pg,i){ doc.addPage(); pdfMessseite(doc,pg,i); }); return doc.output('datauristring'); };
+
+// ---------- Update / Service Worker ----------
+window.clearCacheAndReload = async function(){
+  try { if ('caches' in window) { var ks=await caches.keys(); await Promise.all(ks.map(function(k){return caches.delete(k);})); }
+    if (navigator.serviceWorker) { var rs=await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(function(r){return r.unregister();})); } } catch(e){}
+  location.reload();
+};
+function checkVersion(){
+  fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(function(v){
+    if (v && v.version && v.version!==APP_VERSION) document.getElementById('upd').style.display='block';
+  }).catch(function(){});
+}
+if ('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(function(){});
+
+// ---------- Start ----------
+loadDB();
+S = (DB.current && DB.items[DB.current]) || newState();
+// Migration / Absicherung
+if (!S.footer) S.footer={};
+DB.items[S.id]=S; DB.current=S.id;
+render();
+checkVersion();
+document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') saveDB(); else checkVersion(); });
+}
+</script>
+</body>
+</html>
